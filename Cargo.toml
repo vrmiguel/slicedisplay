@@ -1,0 +1,14 @@
+[package]
+name = "slicedisplay"
+version = "0.1.0"
+edition = "2021"
+authors = ["Vinícius R. Miguel <vrmiguel99@gmail.com>"]
+description = "Simplistic Display implementation for Vecs and slices"
+keywords = ["display", "string", "str", "text"]
+license = "MIT OR Apache-2.0"
+categories = ["text-processing"]
+documentation = "https://docs.rs/slicedisplay"
+homepage = "https://github.com/vrmiguel/slicedisplay"
+repository = "https://github.com/vrmiguel/slicedisplay"
+
+[dependencies]
