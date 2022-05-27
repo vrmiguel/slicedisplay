@@ -42,11 +42,20 @@ mod tests {
     use crate::SliceDisplay;
 
     #[test]
-    fn slice_display() {
-        let nums = vec![1, 2, 3, 4];
-        assert_eq!(nums.display().to_string(), "[1, 2, 3, 4]");
-
-        let empty: Vec<i32> = vec![];
+    fn slice_display_empty() {
+        let empty: Vec<u8> = vec![];
         assert_eq!(empty.display().to_string(), "[]");
+    }
+
+    #[test]
+    fn slice_display_single() {
+        let single = vec![1];
+        assert_eq!(single.display().to_string(), "[1]");
+    }
+
+    #[test]
+    fn slice_display_multiple() {
+        let numbers = vec![1, 2, 3, 4, 5];
+        assert_eq!(numbers.display().to_string(), "[1, 2, 3, 4, 5]");
     }
 }
