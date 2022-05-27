@@ -2,7 +2,7 @@
 name = "slicedisplay"
 version = "0.1.0"
 edition = "2021"
-authors = ["Vinícius R. Miguel <vrmiguel99@gmail.com>", "Tiago Guimarães <tilacog@gmail.com"]
+authors = ["Vinícius R. Miguel <vrmiguel99@gmail.com>", "Tiago Guimarães <tilacog@gmail.com>"]
 description = "Simplistic Display implementation for Vecs and slices"
 keywords = ["display", "string", "str", "text"]
 license = "MIT OR Apache-2.0"
