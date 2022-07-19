@@ -1,5 +1,5 @@
 #![no_std]
-
+#![doc = include_str!("../README.md")]
 extern crate alloc;
 
 use alloc::vec::Vec;

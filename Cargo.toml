@@ -1,6 +1,6 @@
 [package]
 name = "slicedisplay"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["Vinícius R. Miguel <vrmiguel99@gmail.com>", "Tiago Guimarães <tilacog@gmail.com>"]
 description = "Simplistic Display implementation for Vecs and slices"
