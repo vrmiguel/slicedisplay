@@ -2,7 +2,9 @@
 
 `slicedisplay` is a tiny `no-std` crate which supplies the `SliceDisplay` trait.
 
-This trait extends `&[T]` and `Vec<T>` with the `display` method, which allows formatting without heap allocations.
+This trait extends `AsRef<[T]>` with the `display` method, which allows formatting without heap allocations.
+
+Requires at least Rust 1.58.
 
 ## Usage
 
@@ -41,5 +43,15 @@ assert_eq!(
         .delimiter(';')
         .to_string(),
     "(H; e; l; l; o)"
+);
+
+assert_eq!(
+    hello
+        .display()
+        .terminator('(', ')')
+        .delimiter(';')
+        .should_space(false)
+        .to_string(),
+    "(H;e;l;l;o)"
 );
 ```

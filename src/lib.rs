@@ -2,7 +2,6 @@
 #![doc = include_str!("../README.md")]
 extern crate alloc;
 
-use alloc::vec::Vec;
 use core::fmt::{Display, Write};
 
 /// Configurable Display implementation for slices and Vecs.
@@ -13,10 +12,12 @@ pub trait SliceDisplay<'a, T: Display> {
 }
 
 /// Helper struct for printing Vecs and slices.
+#[derive(Clone, Copy)]
 pub struct SliceDisplayImpl<'a, T: Display> {
     slice: &'a [T],
     terminators: (char, char),
     delimiter: char,
+    should_space: bool,
 }
 
 impl<'a, T: Display> SliceDisplayImpl<'a, T> {
@@ -52,24 +53,39 @@ impl<'a, T: Display> SliceDisplayImpl<'a, T> {
     pub fn delimiter(self, delimiter: char) -> Self {
         Self { delimiter, ..self }
     }
-}
 
-impl<'a, T: Display> SliceDisplay<'a, T> for &'a [T] {
-    fn display(&'a self) -> SliceDisplayImpl<'a, T> {
-        SliceDisplayImpl {
-            slice: self,
-            terminators: ('[', ']'),
-            delimiter: ',',
+    /// Sets whether additional spacing should be added between elements.
+    ///
+    /// True by default.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use slicedisplay::SliceDisplay;
+    ///
+    /// let hello: Vec<_> = "Hello".chars().collect();
+    ///
+    /// assert_eq!(hello.display().delimiter(';').to_string(), "[H; e; l; l; o]");
+    /// assert_eq!(hello.display().delimiter(';').should_space(false).to_string(), "[H;e;l;l;o]");
+    /// ```
+    pub fn should_space(self, should_space: bool) -> Self {
+        Self {
+            should_space,
+            ..self
         }
     }
 }
 
-impl<T: Display> SliceDisplay<'_, T> for Vec<T> {
+impl<T: Display, A> SliceDisplay<'_, T> for A
+where
+    A: AsRef<[T]>,
+{
     fn display(&self) -> SliceDisplayImpl<'_, T> {
         SliceDisplayImpl {
-            slice: self,
+            slice: self.as_ref(),
             terminators: ('[', ']'),
             delimiter: ',',
+            should_space: true,
         }
     }
 }
@@ -78,11 +94,12 @@ impl<'a, T: Display> Display for SliceDisplayImpl<'a, T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let (beginning, ending) = self.terminators;
         let delimiter = self.delimiter;
+        let spacing = if self.should_space { " " } else { "" };
 
         f.write_char(beginning)?;
         if let Some((last, elems)) = self.slice.split_last() {
             for elem in elems {
-                write!(f, "{elem}{delimiter} ")?;
+                write!(f, "{elem}{delimiter}{spacing}")?;
             }
             write!(f, "{last}")?;
         }
@@ -101,19 +118,61 @@ mod tests {
 
     #[test]
     fn slice_display_empty() {
+        // Slighly redundant in order to ensure that we can
+        // call Display on any AsRef<T>
         let empty: Vec<u8> = Vec::new();
+        let empty_array: [u8; 0] = [];
+        let empty_slice: &[u8] = &[];
+
         assert_eq!(empty.display().to_string(), "[]");
+        assert_eq!(empty_array.display().to_string(), "[]");
+        assert_eq!(empty_slice.display().to_string(), "[]");
     }
 
     #[test]
     fn slice_display_single() {
-        let single = Vec::from([1]);
+        let single = [1];
         assert_eq!(single.display().to_string(), "[1]");
     }
 
     #[test]
     fn slice_display_multiple() {
-        let numbers = Vec::from([1, 2, 3, 4, 5]);
+        let numbers = [1, 2, 3, 4, 5];
         assert_eq!(numbers.display().to_string(), "[1, 2, 3, 4, 5]");
+    }
+
+    #[test]
+    fn slice_display_custom_delimiter() {
+        let numbers = [1, 2, 3, 4, 5];
+        assert_eq!(
+            numbers.display().delimiter(';').to_string(),
+            "[1; 2; 3; 4; 5]"
+        );
+        assert_eq!(
+            numbers
+                .display()
+                .delimiter('-')
+                .should_space(false)
+                .to_string(),
+            "[1-2-3-4-5]"
+        );
+    }
+
+    #[test]
+    fn slice_display_custom_terminators() {
+        let numbers = [1, 2, 3, 4, 5];
+        assert_eq!(
+            numbers.display().terminator('{', '}').to_string(),
+            "{1, 2, 3, 4, 5}"
+        );
+        assert_eq!(
+            numbers
+                .display()
+                .terminator('{', '}')
+                .should_space(false)
+                .delimiter(';')
+                .to_string(),
+            "{1;2;3;4;5}"
+        );
     }
 }
