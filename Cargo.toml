@@ -12,4 +12,6 @@ homepage = "https://github.com/vrmiguel/slicedisplay"
 repository = "https://github.com/vrmiguel/slicedisplay"
 
 [dependencies]
-  
+
+[features]
+multichar-chrome = []
