@@ -14,4 +14,4 @@ repository = "https://github.com/vrmiguel/slicedisplay"
 [dependencies]
 
 [features]
-multichar-chrome = []
+multichar = []

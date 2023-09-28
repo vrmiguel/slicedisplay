@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use core::fmt::Display;
-#[cfg(not(feature = "multichar-chrome"))]
+#[cfg(not(feature = "multichar"))]
 use core::fmt::Write;
 
 /// Configurable Display implementation for slices and Vecs.
@@ -13,10 +13,10 @@ pub trait SliceDisplay<'a, T: Display> {
     fn display(&'a self) -> SliceDisplayImpl<'a, T>;
 }
 
-#[cfg(feature = "multichar-chrome")]
+#[cfg(feature = "multichar")]
 type ChromeLiteral = &'static str;
 
-#[cfg(not(feature = "multichar-chrome"))]
+#[cfg(not(feature = "multichar"))]
 type ChromeLiteral = char;
 
 /// Helper struct for printing Vecs and slices.
@@ -38,7 +38,7 @@ impl<'a, T: Display> SliceDisplayImpl<'a, T> {
     ///
     /// let hello: Vec<_> = "Hello".chars().collect();
     ///
-    /// #[cfg(not(feature = "multichar-chrome"))]
+    /// #[cfg(not(feature = "multichar"))]
     /// assert_eq!(hello.display().terminator('{', '}').to_string(), "{H, e, l, l, o}");
     /// ```
     pub fn terminator(self, beginning: ChromeLiteral, ending: ChromeLiteral) -> Self {
@@ -57,7 +57,7 @@ impl<'a, T: Display> SliceDisplayImpl<'a, T> {
     ///
     /// let hello: Vec<_> = "Hello".chars().collect();
     ///
-    /// #[cfg(not(feature = "multichar-chrome"))]
+    /// #[cfg(not(feature = "multichar"))]
     /// assert_eq!(hello.display().delimiter(';').to_string(), "[H; e; l; l; o]");
     /// ```
     pub fn delimiter(self, delimiter: ChromeLiteral) -> Self {
@@ -75,9 +75,9 @@ impl<'a, T: Display> SliceDisplayImpl<'a, T> {
     ///
     /// let hello: Vec<_> = "Hello".chars().collect();
     ///
-    /// #[cfg(not(feature = "multichar-chrome"))]
+    /// #[cfg(not(feature = "multichar"))]
     /// assert_eq!(hello.display().delimiter(';').to_string(), "[H; e; l; l; o]");
-    /// #[cfg(not(feature = "multichar-chrome"))]
+    /// #[cfg(not(feature = "multichar"))]
     /// assert_eq!(hello.display().delimiter(';').should_space(false).to_string(), "[H;e;l;l;o]");
     /// ```
     pub fn should_space(self, should_space: bool) -> Self {
@@ -95,13 +95,13 @@ where
     fn display(&self) -> SliceDisplayImpl<'_, T> {
         SliceDisplayImpl {
             slice: self.as_ref(),
-            #[cfg(feature = "multichar-chrome")]
+            #[cfg(feature = "multichar")]
             terminators: ("[", "]"),
-            #[cfg(not(feature = "multichar-chrome"))]
+            #[cfg(not(feature = "multichar"))]
             terminators: ('[', ']'),
-            #[cfg(feature = "multichar-chrome")]
+            #[cfg(feature = "multichar")]
             delimiter: ",",
-            #[cfg(not(feature = "multichar-chrome"))]
+            #[cfg(not(feature = "multichar"))]
             delimiter: ',',
             should_space: true,
         }
@@ -114,9 +114,9 @@ impl<'a, T: Display> Display for SliceDisplayImpl<'a, T> {
         let delimiter = self.delimiter;
         let spacing = if self.should_space { " " } else { "" };
 
-        #[cfg(feature = "multichar-chrome")]
+        #[cfg(feature = "multichar")]
         f.write_str(beginning)?;
-        #[cfg(not(feature = "multichar-chrome"))]
+        #[cfg(not(feature = "multichar"))]
         f.write_char(beginning)?;
 
         if let Some((last, elems)) = self.slice.split_last() {
@@ -126,10 +126,10 @@ impl<'a, T: Display> Display for SliceDisplayImpl<'a, T> {
             write!(f, "{last}")?;
         }
 
-        #[cfg(feature = "multichar-chrome")]
+        #[cfg(feature = "multichar")]
         return f.write_str(ending);
 
-        #[cfg(not(feature = "multichar-chrome"))]
+        #[cfg(not(feature = "multichar"))]
         f.write_char(ending)
     }
 }
@@ -168,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(feature = "multichar-chrome"))]
+    #[cfg(not(feature = "multichar"))]
     fn slice_display_custom_delimiter() {
         let numbers = [1, 2, 3, 4, 5];
         assert_eq!(
@@ -186,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(not(feature = "multichar-chrome"))]
+    #[cfg(not(feature = "multichar"))]
     fn slice_display_custom_terminators() {
         let numbers = [1, 2, 3, 4, 5];
         assert_eq!(
@@ -205,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "multichar-chrome")]
+    #[cfg(feature = "multichar")]
     fn slice_display_custom_multichar_chrome() {
         let numbers = [1, 2, 3, 4, 5];
         assert_eq!(
