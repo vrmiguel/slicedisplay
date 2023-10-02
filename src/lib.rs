@@ -2,7 +2,11 @@
 #![doc = include_str!("../README.md")]
 extern crate alloc;
 
-use core::fmt::{Display, Write};
+use core::fmt::Display;
+#[cfg(not(feature = "multichar"))]
+use core::fmt::Write;
+
+use cfg_if::cfg_if;
 
 /// Configurable Display implementation for slices and Vecs.
 pub trait SliceDisplay<'a, T: Display> {
@@ -11,12 +15,18 @@ pub trait SliceDisplay<'a, T: Display> {
     fn display(&'a self) -> SliceDisplayImpl<'a, T>;
 }
 
+#[cfg(feature = "multichar")]
+type ChromeLiteral = &'static str;
+
+#[cfg(not(feature = "multichar"))]
+type ChromeLiteral = char;
+
 /// Helper struct for printing Vecs and slices.
 #[derive(Clone, Copy)]
 pub struct SliceDisplayImpl<'a, T: Display> {
     slice: &'a [T],
-    terminators: (char, char),
-    delimiter: char,
+    terminators: (ChromeLiteral, ChromeLiteral),
+    delimiter: ChromeLiteral,
     should_space: bool,
 }
 
@@ -27,12 +37,21 @@ impl<'a, T: Display> SliceDisplayImpl<'a, T> {
     ///
     /// ```rust
     /// use slicedisplay::SliceDisplay;
+    /// use cfg_if::cfg_if;
     ///
     /// let hello: Vec<_> = "Hello".chars().collect();
     ///
-    /// assert_eq!(hello.display().terminator('{', '}').to_string(), "{H, e, l, l, o}");
+    /// let (leftTerm, rightTerm);
+    /// cfg_if! {
+    ///     if #[cfg(feature = "multichar")] {
+    ///         (leftTerm, rightTerm) = ("{", "}");
+    ///     } else {
+    ///         (leftTerm, rightTerm) = ('{', '}');
+    ///     }
+    /// }
+    /// assert_eq!(hello.display().terminator(leftTerm, rightTerm).to_string(), "{H, e, l, l, o}");
     /// ```
-    pub fn terminator(self, beginning: char, ending: char) -> Self {
+    pub fn terminator(self, beginning: ChromeLiteral, ending: ChromeLiteral) -> Self {
         Self {
             terminators: (beginning, ending),
             ..self
@@ -45,12 +64,21 @@ impl<'a, T: Display> SliceDisplayImpl<'a, T> {
     ///
     /// ```rust
     /// use slicedisplay::SliceDisplay;
+    /// use cfg_if::cfg_if;
     ///
     /// let hello: Vec<_> = "Hello".chars().collect();
     ///
-    /// assert_eq!(hello.display().delimiter(';').to_string(), "[H; e; l; l; o]");
+    /// let delim;
+    /// cfg_if! {
+    ///     if #[cfg(feature = "multichar")] {
+    ///        delim = ";";
+    ///     } else {
+    ///        delim = ';';
+    ///    }
+    /// }
+    /// assert_eq!(hello.display().delimiter(delim).to_string(), "[H; e; l; l; o]");
     /// ```
-    pub fn delimiter(self, delimiter: char) -> Self {
+    pub fn delimiter(self, delimiter: ChromeLiteral) -> Self {
         Self { delimiter, ..self }
     }
 
@@ -60,13 +88,22 @@ impl<'a, T: Display> SliceDisplayImpl<'a, T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```no_run
     /// use slicedisplay::SliceDisplay;
+    /// use cfg_if::cfg_if;
     ///
     /// let hello: Vec<_> = "Hello".chars().collect();
     ///
-    /// assert_eq!(hello.display().delimiter(';').to_string(), "[H; e; l; l; o]");
-    /// assert_eq!(hello.display().delimiter(';').should_space(false).to_string(), "[H;e;l;l;o]");
+    /// let delim;
+    /// cfg_if! {
+    ///     if #[cfg(feature = "multichar")] {
+    ///        delim = ";";
+    ///     } else {
+    ///        delim = ';';
+    ///    }
+    /// }
+    /// assert_eq!(hello.display().delimiter(delim).to_string(), "[H; e; l; l; o]");
+    /// assert_eq!(hello.display().delimiter(delim).should_space(false).to_string(), "[H;e;l;l;o]");
     /// ```
     pub fn should_space(self, should_space: bool) -> Self {
         Self {
@@ -80,6 +117,16 @@ impl<T: Display, A> SliceDisplay<'_, T> for A
 where
     A: AsRef<[T]>,
 {
+    #[cfg(feature = "multichar")]
+    fn display(&self) -> SliceDisplayImpl<'_, T> {
+        SliceDisplayImpl {
+            slice: self.as_ref(),
+            terminators: ("[", "]"),
+            delimiter: ",",
+            should_space: true,
+        }
+    }
+    #[cfg(not(feature = "multichar"))]
     fn display(&self) -> SliceDisplayImpl<'_, T> {
         SliceDisplayImpl {
             slice: self.as_ref(),
@@ -96,7 +143,14 @@ impl<'a, T: Display> Display for SliceDisplayImpl<'a, T> {
         let delimiter = self.delimiter;
         let spacing = if self.should_space { " " } else { "" };
 
-        f.write_char(beginning)?;
+        cfg_if! {
+            if #[cfg(feature = "multichar")] {
+                f.write_str(beginning)?;
+            } else {
+                f.write_char(beginning)?;
+            }
+        }
+
         if let Some((last, elems)) = self.slice.split_last() {
             for elem in elems {
                 write!(f, "{elem}{delimiter}{spacing}")?;
@@ -104,7 +158,13 @@ impl<'a, T: Display> Display for SliceDisplayImpl<'a, T> {
             write!(f, "{last}")?;
         }
 
-        f.write_char(ending)
+        cfg_if! {
+            if #[cfg(feature = "multichar")] {
+                f.write_str(ending)
+            } else {
+                f.write_char(ending)
+            }
+        }
     }
 }
 
@@ -142,6 +202,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(feature = "multichar"))]
     fn slice_display_custom_delimiter() {
         let numbers = [1, 2, 3, 4, 5];
         assert_eq!(
@@ -159,6 +220,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(feature = "multichar"))]
     fn slice_display_custom_terminators() {
         let numbers = [1, 2, 3, 4, 5];
         assert_eq!(
@@ -173,6 +235,21 @@ mod tests {
                 .delimiter(';')
                 .to_string(),
             "{1;2;3;4;5}"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "multichar")]
+    fn slice_display_custom_multichar_chrome() {
+        let numbers = [1, 2, 3, 4, 5];
+        assert_eq!(
+            numbers
+                .display()
+                .terminator("{{", "}}")
+                .should_space(false)
+                .delimiter(" ... ")
+                .to_string(),
+            "{{1 ... 2 ... 3 ... 4 ... 5}}"
         );
     }
 }
