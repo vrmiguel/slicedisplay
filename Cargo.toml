@@ -12,6 +12,7 @@ homepage = "https://github.com/vrmiguel/slicedisplay"
 repository = "https://github.com/vrmiguel/slicedisplay"
 
 [dependencies]
+cfg-if = "1.0.0"
 
 [features]
 multichar = []

@@ -6,6 +6,8 @@ use core::fmt::Display;
 #[cfg(not(feature = "multichar"))]
 use core::fmt::Write;
 
+use cfg_if::cfg_if;
+
 /// Configurable Display implementation for slices and Vecs.
 pub trait SliceDisplay<'a, T: Display> {
     #[must_use = "this does not display the slice, \
@@ -35,11 +37,19 @@ impl<'a, T: Display> SliceDisplayImpl<'a, T> {
     ///
     /// ```rust
     /// use slicedisplay::SliceDisplay;
+    /// use cfg_if::cfg_if;
     ///
     /// let hello: Vec<_> = "Hello".chars().collect();
     ///
-    /// #[cfg(not(feature = "multichar"))]
-    /// assert_eq!(hello.display().terminator('{', '}').to_string(), "{H, e, l, l, o}");
+    /// let (leftTerm, rightTerm);
+    /// cfg_if! {
+    ///     if #[cfg(feature = "multichar")] {
+    ///         (leftTerm, rightTerm) = ("{", "}");
+    ///     } else {
+    ///         (leftTerm, rightTerm) = ('{', '}');
+    ///     }
+    /// }
+    /// assert_eq!(hello.display().terminator(leftTerm, rightTerm).to_string(), "{H, e, l, l, o}");
     /// ```
     pub fn terminator(self, beginning: ChromeLiteral, ending: ChromeLiteral) -> Self {
         Self {
@@ -54,11 +64,19 @@ impl<'a, T: Display> SliceDisplayImpl<'a, T> {
     ///
     /// ```rust
     /// use slicedisplay::SliceDisplay;
+    /// use cfg_if::cfg_if;
     ///
     /// let hello: Vec<_> = "Hello".chars().collect();
     ///
-    /// #[cfg(not(feature = "multichar"))]
-    /// assert_eq!(hello.display().delimiter(';').to_string(), "[H; e; l; l; o]");
+    /// let delim;
+    /// cfg_if! {
+    ///     if #[cfg(feature = "multichar")] {
+    ///        delim = ";";
+    ///     } else {
+    ///        delim = ';';
+    ///    }
+    /// }
+    /// assert_eq!(hello.display().delimiter(delim).to_string(), "[H; e; l; l; o]");
     /// ```
     pub fn delimiter(self, delimiter: ChromeLiteral) -> Self {
         Self { delimiter, ..self }
@@ -70,15 +88,22 @@ impl<'a, T: Display> SliceDisplayImpl<'a, T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```no_run
     /// use slicedisplay::SliceDisplay;
+    /// use cfg_if::cfg_if;
     ///
     /// let hello: Vec<_> = "Hello".chars().collect();
     ///
-    /// #[cfg(not(feature = "multichar"))]
-    /// assert_eq!(hello.display().delimiter(';').to_string(), "[H; e; l; l; o]");
-    /// #[cfg(not(feature = "multichar"))]
-    /// assert_eq!(hello.display().delimiter(';').should_space(false).to_string(), "[H;e;l;l;o]");
+    /// let delim;
+    /// cfg_if! {
+    ///     if #[cfg(feature = "multichar")] {
+    ///        delim = ";";
+    ///     } else {
+    ///        delim = ';';
+    ///    }
+    /// }
+    /// assert_eq!(hello.display().delimiter(delim).to_string(), "[H; e; l; l; o]");
+    /// assert_eq!(hello.display().delimiter(delim).should_space(false).to_string(), "[H;e;l;l;o]");
     /// ```
     pub fn should_space(self, should_space: bool) -> Self {
         Self {
@@ -92,16 +117,20 @@ impl<T: Display, A> SliceDisplay<'_, T> for A
 where
     A: AsRef<[T]>,
 {
+    #[cfg(feature = "multichar")]
     fn display(&self) -> SliceDisplayImpl<'_, T> {
         SliceDisplayImpl {
             slice: self.as_ref(),
-            #[cfg(feature = "multichar")]
             terminators: ("[", "]"),
-            #[cfg(not(feature = "multichar"))]
-            terminators: ('[', ']'),
-            #[cfg(feature = "multichar")]
             delimiter: ",",
-            #[cfg(not(feature = "multichar"))]
+            should_space: true,
+        }
+    }
+    #[cfg(not(feature = "multichar"))]
+    fn display(&self) -> SliceDisplayImpl<'_, T> {
+        SliceDisplayImpl {
+            slice: self.as_ref(),
+            terminators: ('[', ']'),
             delimiter: ',',
             should_space: true,
         }
@@ -114,10 +143,13 @@ impl<'a, T: Display> Display for SliceDisplayImpl<'a, T> {
         let delimiter = self.delimiter;
         let spacing = if self.should_space { " " } else { "" };
 
-        #[cfg(feature = "multichar")]
-        f.write_str(beginning)?;
-        #[cfg(not(feature = "multichar"))]
-        f.write_char(beginning)?;
+        cfg_if! {
+            if #[cfg(feature = "multichar")] {
+                f.write_str(beginning)?;
+            } else {
+                f.write_char(beginning)?;
+            }
+        }
 
         if let Some((last, elems)) = self.slice.split_last() {
             for elem in elems {
@@ -126,11 +158,13 @@ impl<'a, T: Display> Display for SliceDisplayImpl<'a, T> {
             write!(f, "{last}")?;
         }
 
-        #[cfg(feature = "multichar")]
-        return f.write_str(ending);
-
-        #[cfg(not(feature = "multichar"))]
-        f.write_char(ending)
+        cfg_if! {
+            if #[cfg(feature = "multichar")] {
+                f.write_str(ending)
+            } else {
+                f.write_char(ending)
+            }
+        }
     }
 }
 
